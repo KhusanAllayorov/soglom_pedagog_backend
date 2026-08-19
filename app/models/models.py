@@ -9,7 +9,7 @@ class User(Base):
     """Sog'lom Pedagog foydalanuvchisi (OTM pedagog xodimi).
 
     Login identifikatorlari — har biri noyob, kamida bittasi to'ldirilgan
-    bo'ladi (odatda `phone`). Ilova sozlamalari (`voice`, `font_scale`, ...)
+    bo'ladi (odatda `phone`). Ilova sozlamalari (`font_scale`, ...)
     ham shu jadvalda — ular 1:1 va kam o'zgaradi, alohida jadval shart emas.
     """
 
@@ -34,7 +34,6 @@ class User(Base):
     password_hash = Column(String, nullable=False)   # bcrypt — parol hech qachon ochiq saqlanmaydi
 
     # ── sozlamalar ────────────────────────────────────────────────────────────
-    voice = Column(Boolean, default=True)
     font_scale = Column(Float, default=1.0)
     reminder_on = Column(Boolean, default=False)
     rem_hour = Column(Integer, default=9)

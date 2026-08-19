@@ -24,6 +24,10 @@ def run_migrations(engine: Engine) -> None:
         if "age" in user_cols:
             conn.exec_driver_sql("ALTER TABLE users DROP COLUMN age")
 
+        # Ovozli yo'riqnoma (TTS) funksiyasi olib tashlandi — 'voice' sozlamasi kerak emas.
+        if "voice" in user_cols:
+            conn.exec_driver_sql("ALTER TABLE users DROP COLUMN voice")
+
         for col, coltype in (
             ("birth_date", "DATE"),
             ("height_cm", "FLOAT"),

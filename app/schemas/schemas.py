@@ -54,7 +54,6 @@ class UserOut(BaseModel):
     weight_kg: float | None = None
     bmi: float | None = None
     bfp: float | None = None
-    voice: bool
     font_scale: float
     reminder_on: bool
     rem_hour: int
@@ -74,7 +73,6 @@ class UserSettingsUpdate(BaseModel):
     birth_date: date | None = None
     height_cm: float | None = None
     weight_kg: float | None = None
-    voice: bool | None = None
     font_scale: float | None = None
     reminder_on: bool | None = None
     rem_hour: int | None = None
