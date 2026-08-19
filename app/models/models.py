@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
-from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, Column, Date, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import relationship
 from ..database import Base
+from ..services.body_metrics import calc_age
 
 
 class User(Base):
@@ -22,7 +23,13 @@ class User(Base):
 
     full_name = Column(String, nullable=False)
     gender = Column(String, nullable=True)
-    age = Column(String, nullable=True)
+
+    # ── tana ko'rsatkichlari ──────────────────────────────────────────────────
+    birth_date = Column(Date, nullable=True)
+    height_cm = Column(Float, nullable=True)
+    weight_kg = Column(Float, nullable=True)
+    bmi = Column(Float, nullable=True)   # profil yangilanganda qayta hisoblanadi (body_metrics.py)
+    bfp = Column(Float, nullable=True)   # tanadagi yog' foizi
 
     password_hash = Column(String, nullable=False)   # bcrypt — parol hech qachon ochiq saqlanmaydi
 
@@ -37,6 +44,11 @@ class User(Base):
 
     progress = relationship("Progress", back_populates="user", cascade="all, delete-orphan")
     test_results = relationship("TestResult", back_populates="user", cascade="all, delete-orphan")
+
+    @property
+    def age(self) -> int | None:
+        """Tug'ilgan sanadan hisoblangan yosh — bazada saqlanmaydi, doim aniq."""
+        return calc_age(self.birth_date)
 
 
 class Progress(Base):

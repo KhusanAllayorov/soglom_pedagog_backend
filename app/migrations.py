@@ -12,10 +12,24 @@ from sqlalchemy.engine import Engine
 
 def run_migrations(engine: Engine) -> None:
     insp = inspect(engine)
-
-    # password_plain olib tashlangan (xavfsizlik: parol faqat bcrypt hash
-    # ko'rinishida saqlanadi) — eski bazalarda ustunni o'chiramiz.
     user_cols = {c["name"] for c in insp.get_columns("users")}
-    if "password_plain" in user_cols:
-        with engine.begin() as conn:
+
+    with engine.begin() as conn:
+        # password_plain olib tashlangan (xavfsizlik: parol faqat bcrypt hash
+        # ko'rinishida saqlanadi) — eski bazalarda ustunni o'chiramiz.
+        if "password_plain" in user_cols:
             conn.exec_driver_sql("ALTER TABLE users DROP COLUMN password_plain")
+
+        # 'age' (matn) o'rniga 'birth_date' + hisoblangan BMI/BFP.
+        if "age" in user_cols:
+            conn.exec_driver_sql("ALTER TABLE users DROP COLUMN age")
+
+        for col, coltype in (
+            ("birth_date", "DATE"),
+            ("height_cm", "FLOAT"),
+            ("weight_kg", "FLOAT"),
+            ("bmi", "FLOAT"),
+            ("bfp", "FLOAT"),
+        ):
+            if col not in user_cols:
+                conn.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {col} {coltype}")

@@ -15,6 +15,7 @@ from ..schemas.schemas import (
     UserSettingsUpdate,
 )
 from ..auth.jwt import create_token, hash_password, verify_password, get_current_user
+from ..services.body_metrics import recompute_body_metrics
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -79,9 +80,12 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
         **identifiers,
         full_name=body.full_name.strip(),
         gender=body.gender,
-        age=body.age,
+        birth_date=body.birth_date,
+        height_cm=body.height_cm,
+        weight_kg=body.weight_kg,
         password_hash=hash_password(body.password),
     )
+    recompute_body_metrics(user)
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -131,6 +135,7 @@ def update_me(
 ):
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(current_user, field, value)
+    recompute_body_metrics(current_user)
     db.commit()
     db.refresh(current_user)
     return current_user

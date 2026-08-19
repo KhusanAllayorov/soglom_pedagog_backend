@@ -1,15 +1,20 @@
-from datetime import datetime
+from datetime import date, datetime
 from pydantic import BaseModel
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 class RegisterRequest(BaseModel):
-    """Ro'yxatdan o'tish. Email, telefon va login nomidan kamida bittasi kerak."""
+    """Ro'yxatdan o'tish. Email, telefon va login nomidan kamida bittasi kerak.
+
+    `birth_date`, `height_cm`, `weight_kg` — ixtiyoriy (BMI/BFP shular bilan hisoblanadi).
+    """
 
     full_name: str
     gender: str | None = None
-    age: str | None = None
+    birth_date: date | None = None
+    height_cm: float | None = None
+    weight_kg: float | None = None
     password: str
 
     email: str | None = None
@@ -43,7 +48,12 @@ class UserOut(BaseModel):
     username: str | None = None
     full_name: str
     gender: str | None = None
-    age: str | None = None
+    birth_date: date | None = None
+    age: int | None = None          # birth_date'dan hisoblanadi, bazada saqlanmaydi
+    height_cm: float | None = None
+    weight_kg: float | None = None
+    bmi: float | None = None
+    bfp: float | None = None
     voice: bool
     font_scale: float
     reminder_on: bool
@@ -54,11 +64,16 @@ class UserOut(BaseModel):
 
 
 class UserSettingsUpdate(BaseModel):
-    """`/auth/me` PATCH — faqat yuborilgan maydonlar yangilanadi."""
+    """`/auth/me` PATCH — faqat yuborilgan maydonlar yangilanadi.
+
+    `birth_date`, `height_cm`, `weight_kg` o'zgarganda `bmi`/`bfp` avtomatik qayta hisoblanadi.
+    """
 
     full_name: str | None = None
     gender: str | None = None
-    age: str | None = None
+    birth_date: date | None = None
+    height_cm: float | None = None
+    weight_kg: float | None = None
     voice: bool | None = None
     font_scale: float | None = None
     reminder_on: bool | None = None
