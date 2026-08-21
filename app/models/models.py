@@ -42,6 +42,7 @@ class User(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     progress = relationship("Progress", back_populates="user", cascade="all, delete-orphan")
+    exercise_progress = relationship("ExerciseProgress", back_populates="user", cascade="all, delete-orphan")
     test_results = relationship("TestResult", back_populates="user", cascade="all, delete-orphan")
 
     @property
@@ -64,6 +65,24 @@ class Progress(Base):
     completed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="progress")
+
+
+class ExerciseProgress(Base):
+    """Sessiya ichidagi bitta individual mashqning bajarilishi (taymer tugagan payt)."""
+
+    __tablename__ = "exercise_progress"
+    __table_args__ = (
+        UniqueConstraint("user_id", "week", "session", "exercise_index", name="uq_exercise_progress_user_week_session_ex"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    week = Column(Integer, nullable=False)
+    session = Column(Integer, nullable=False)
+    exercise_index = Column(Integer, nullable=False)  # majmua ichidagi tartib raqami (0-based)
+    completed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User", back_populates="exercise_progress")
 
 
 class TestResult(Base):

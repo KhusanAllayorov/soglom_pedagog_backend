@@ -96,6 +96,23 @@ class ProgressOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# ── Individual mashq bajarilishi ────────────────────────────────────────────────
+
+class ExerciseProgressIn(BaseModel):
+    week: int
+    session: int
+    exercise_index: int
+
+
+class ExerciseProgressOut(BaseModel):
+    week: int
+    session: int
+    exercise_index: int
+    completed_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 # ── Test natijalari ───────────────────────────────────────────────────────────
 
 class TestResultIn(BaseModel):

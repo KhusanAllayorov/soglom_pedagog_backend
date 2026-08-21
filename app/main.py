@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
 from .migrations import run_migrations
 from .models import models  # noqa: F401 — trigger table registration
-from .routers import auth, progress, test_results
+from .routers import auth, exercise_progress, progress, test_results
 
 Base.metadata.create_all(bind=engine)
 run_migrations(engine)
@@ -25,6 +25,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(progress.router)
+app.include_router(exercise_progress.router)
 app.include_router(test_results.router)
 
 
