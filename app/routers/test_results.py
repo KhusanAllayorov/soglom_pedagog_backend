@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -34,3 +34,11 @@ def upsert_test_result(
     db.commit()
     db.refresh(row)
     return row
+
+
+@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
+def restart_assessment(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Foydalanuvchi o'z test natijalarini butunlay o'chiradi — "Baholashni
+    qayta boshlash" (Sozlamalar). Progress/mashqlar bunga tegmaydi."""
+    db.query(TestResult).filter(TestResult.user_id == current_user.id).delete()
+    db.commit()

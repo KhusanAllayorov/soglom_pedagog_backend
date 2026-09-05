@@ -19,6 +19,11 @@ class User(Base):
 
     phone = Column(String, unique=True, index=True, nullable=False)     # +998XXXXXXXXX — yagona login identifikatori
 
+    # Rol: 'admin' | 'instructor' | 'pedagog_hodim'. Ro'yxatdan o'tishda doim
+    # 'pedagog_hodim' (agar telefon ADMIN_PHONES'da bo'lmasa) — instructor
+    # rolini faqat admin beradi (routers/admin.py).
+    role = Column(String, nullable=False, default="pedagog_hodim")
+
     full_name = Column(String, nullable=False)
     gender = Column(String, nullable=True)
 
@@ -50,9 +55,12 @@ class User(Base):
 
     @property
     def is_admin(self) -> bool:
-        """Telefon raqami ADMIN_PHONES ro'yxatida bo'lsa — admin (parol tiklay oladi)."""
-        from ..config import ADMIN_PHONES
-        return self.phone in ADMIN_PHONES
+        return self.role == "admin"
+
+    @property
+    def is_staff(self) -> bool:
+        """Admin yoki instructor — Excel eksport va umumiy ko'rinishga ruxsat."""
+        return self.role in ("admin", "instructor")
 
 
 class Progress(Base):

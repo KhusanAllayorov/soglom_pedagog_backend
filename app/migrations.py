@@ -6,8 +6,10 @@ amallar **idempotent** — bir necha marta ishga tushsa ham zarari yo'q.
 SQLite va PostgreSQL ikkalasida ishlaydi.
 """
 
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
+
+from .config import ADMIN_PHONES
 
 
 def run_migrations(engine: Engine) -> None:
@@ -28,6 +30,12 @@ def run_migrations(engine: Engine) -> None:
         if "voice" in user_cols:
             conn.exec_driver_sql("ALTER TABLE users DROP COLUMN voice")
 
+        # Login endi faqat telefon orqali — email/username butunlay olib tashlandi.
+        if "email" in user_cols:
+            conn.exec_driver_sql("ALTER TABLE users DROP COLUMN email")
+        if "username" in user_cols:
+            conn.exec_driver_sql("ALTER TABLE users DROP COLUMN username")
+
         for col, coltype in (
             ("birth_date", "DATE"),
             ("height_cm", "FLOAT"),
@@ -37,3 +45,15 @@ def run_migrations(engine: Engine) -> None:
         ):
             if col not in user_cols:
                 conn.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {col} {coltype}")
+
+        # Rollar: admin / instructor / pedagog_hodim. Yangi ustun — mavjud
+        # foydalanuvchilar 'pedagog_hodim' bilan boshlanadi.
+        if "role" not in user_cols:
+            conn.exec_driver_sql(
+                "ALTER TABLE users ADD COLUMN role VARCHAR NOT NULL DEFAULT 'pedagog_hodim'"
+            )
+
+        # ADMIN_PHONES ro'yxatidagi raqamlarni admin qilib qo'yamiz (bootstrap).
+        # Faqat ko'tarish — bu yerda hech kimni admin lavozimidan tushirmaymiz.
+        for phone in ADMIN_PHONES:
+            conn.execute(text("UPDATE users SET role = 'admin' WHERE phone = :phone"), {"phone": phone})

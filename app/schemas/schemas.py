@@ -42,7 +42,9 @@ class UserOut(BaseModel):
     id: int
     phone: str
     full_name: str
+    role: str = "pedagog_hodim"
     is_admin: bool = False
+    is_staff: bool = False
     gender: str | None = None
     birth_date: date | None = None
     age: int | None = None          # birth_date'dan hisoblanadi, bazada saqlanmaydi
@@ -73,6 +75,38 @@ class UserSettingsUpdate(BaseModel):
     reminder_on: bool | None = None
     rem_hour: int | None = None
     rem_min: int | None = None
+
+
+# ── Admin ─────────────────────────────────────────────────────────────────────
+
+ROLES = ("admin", "instructor", "pedagog_hodim")
+
+
+class AdminUserUpdate(BaseModel):
+    """Admin foydalanuvchi profilini tahrirlashi (`PATCH /admin/users/{id}`)."""
+
+    full_name: str | None = None
+    gender: str | None = None
+    birth_date: date | None = None
+    height_cm: float | None = None
+    weight_kg: float | None = None
+
+
+class RoleUpdate(BaseModel):
+    """Admin foydalanuvchi rolini o'zgartirishi (`PATCH /admin/users/{id}/role`)."""
+
+    role: str
+
+
+class OverviewUser(BaseModel):
+    """Excel eksport uchun — bitta foydalanuvchining umumiy ko'rsatkichlari."""
+
+    id: int
+    full_name: str
+    phone: str
+    role: str
+    sessions_done: int
+    test_results: dict[str, float]
 
 
 # ── Progress ──────────────────────────────────────────────────────────────────

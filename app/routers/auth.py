@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from ..config import ADMIN_PHONES
 from ..database import get_db
 from ..identifiers import normalize_phone
 from ..models.models import User
@@ -46,6 +47,7 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
         height_cm=body.height_cm,
         weight_kg=body.weight_kg,
         password_hash=hash_password(body.password),
+        role="admin" if phone in ADMIN_PHONES else "pedagog_hodim",
     )
     recompute_body_metrics(user)
     db.add(user)
