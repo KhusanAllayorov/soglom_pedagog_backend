@@ -5,25 +5,22 @@ from pydantic import BaseModel
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 class RegisterRequest(BaseModel):
-    """Ro'yxatdan o'tish. Email, telefon va login nomidan kamida bittasi kerak.
+    """Ro'yxatdan o'tish — telefon raqami va parol majburiy.
 
     `birth_date`, `height_cm`, `weight_kg` — ixtiyoriy (BMI/BFP shular bilan hisoblanadi).
     """
 
     full_name: str
+    phone: str                    # +998 XX XXX XX XX — yagona login identifikatori
+    password: str
     gender: str | None = None
     birth_date: date | None = None
     height_cm: float | None = None
     weight_kg: float | None = None
-    password: str
-
-    email: str | None = None
-    phone: str | None = None      # +998 XX XXX XX XX
-    username: str | None = None
 
 
 class LoginRequest(BaseModel):
-    """Kirish. `identifier` — email, telefon yoki login nomi."""
+    """Kirish — `identifier` telefon raqami."""
 
     password: str
     identifier: str
@@ -35,7 +32,7 @@ class TokenResponse(BaseModel):
 
 
 class AdminPasswordReset(BaseModel):
-    """Admin foydalanuvchiga yangi parol o'rnatadi (`identifier` — telefon/email/login)."""
+    """Admin foydalanuvchiga yangi parol o'rnatadi (`identifier` — telefon raqami)."""
 
     identifier: str
     new_password: str
@@ -43,10 +40,9 @@ class AdminPasswordReset(BaseModel):
 
 class UserOut(BaseModel):
     id: int
-    email: str | None = None
-    phone: str | None = None
-    username: str | None = None
+    phone: str
     full_name: str
+    is_admin: bool = False
     gender: str | None = None
     birth_date: date | None = None
     age: int | None = None          # birth_date'dan hisoblanadi, bazada saqlanmaydi

@@ -16,3 +16,11 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "4320
 
 # Admin amallar (parol tiklash) uchun maxfiy kalit. Bo'sh bo'lsa — admin API o'chiq.
 ADMIN_KEY = os.getenv("ADMIN_KEY", "")
+
+# Admin huquqiga ega telefon raqamlar (+998XXXXXXXXX ko'rinishida, vergul bilan).
+# Shu raqamlar bilan kirgan foydalanuvchi boshqalarning parolini tiklay oladi.
+ADMIN_PHONES = {
+    p.strip()
+    for p in os.getenv("ADMIN_PHONES", "+998914224712").split(",")
+    if p.strip()
+}

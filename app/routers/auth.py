@@ -1,10 +1,8 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, status
-from sqlalchemy import or_
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from ..config import ADMIN_KEY
 from ..database import get_db
-from ..identifiers import normalize_email, normalize_phone, normalize_username
+from ..identifiers import normalize_phone
 from ..models.models import User
 from ..schemas.schemas import (
     AdminPasswordReset,
@@ -20,66 +18,28 @@ from ..services.body_metrics import recompute_body_metrics
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-def _clean_identifiers(body: RegisterRequest) -> dict[str, str | None]:
-    """Kiritilgan identifikatorlarni tekshiradi va bir ko'rinishga keltiradi.
-
-    Kiritilgan, lekin formati noto'g'ri bo'lsa — aniq xato qaytaradi.
-    Hech biri kiritilmagan bo'lsa ham xato.
-    """
-    result: dict[str, str | None] = {"email": None, "phone": None, "username": None}
-
-    if body.email and body.email.strip():
-        result["email"] = normalize_email(body.email)
-        if result["email"] is None:
-            raise HTTPException(status_code=400, detail="Email formati noto'g'ri")
-
-    if body.phone and body.phone.strip():
-        result["phone"] = normalize_phone(body.phone)
-        if result["phone"] is None:
-            raise HTTPException(
-                status_code=400,
-                detail="Telefon raqam noto'g'ri. Namuna: +998 90 123 45 67",
-            )
-
-    if body.username and body.username.strip():
-        result["username"] = normalize_username(body.username)
-        if result["username"] is None:
-            raise HTTPException(
-                status_code=400,
-                detail="Login nomi 3–30 ta belgidan iborat bo'lsin "
-                       "(kichik harf, raqam, pastki chiziq)",
-            )
-
-    if not any(result.values()):
+def _clean_phone(raw: str) -> str:
+    """Telefon raqamini tekshiradi va `+998XXXXXXXXX` ko'rinishiga keltiradi."""
+    phone = normalize_phone(raw)
+    if phone is None:
         raise HTTPException(
             status_code=400,
-            detail="Email, telefon yoki login nomidan kamida bittasini kiriting",
+            detail="Telefon raqam noto'g'ri. Namuna: +998 90 123 45 67",
         )
-    return result
-
-
-def _ensure_unique(db: Session, identifiers: dict[str, str | None]) -> None:
-    """Identifikator boshqa foydalanuvchida band emasligini tekshiradi."""
-    labels = {"email": "Email", "phone": "Telefon raqam", "username": "Login nomi"}
-    for field, value in identifiers.items():
-        if value is None:
-            continue
-        if db.query(User).filter(getattr(User, field) == value).first():
-            raise HTTPException(
-                status_code=400,
-                detail=f"{labels[field]} allaqachon ro'yxatdan o'tgan",
-            )
+    return phone
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 def register(body: RegisterRequest, db: Session = Depends(get_db)):
     if len(body.password) < 6:
         raise HTTPException(status_code=400, detail="Parol kamida 6 ta belgi bo'lsin")
-    identifiers = _clean_identifiers(body)
-    _ensure_unique(db, identifiers)
+
+    phone = _clean_phone(body.phone)
+    if db.query(User).filter(User.phone == phone).first():
+        raise HTTPException(status_code=400, detail="Bu telefon raqam allaqachon ro'yxatdan o'tgan")
 
     user = User(
-        **identifiers,
+        phone=phone,
         full_name=body.full_name.strip(),
         gender=body.gender,
         birth_date=body.birth_date,
@@ -94,33 +54,19 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
     return TokenResponse(token=create_token(user.id))
 
 
-def _find_by_identifier(db: Session, raw: str) -> User | None:
-    """Email, telefon yoki login nomi bo'yicha foydalanuvchini topadi.
-
-    Kiritilgan matn qaysi turga o'xshasa, o'sha ustunlar bo'yicha qidiriladi —
-    shuning uchun foydalanuvchi turini oldindan tanlashi shart emas.
-    """
-    if not raw:
+def _find_by_phone(db: Session, raw: str) -> User | None:
+    """Telefon raqami bo'yicha foydalanuvchini topadi."""
+    phone = normalize_phone(raw)
+    if phone is None:
         return None
-
-    filters = []
-    if (email := normalize_email(raw)) is not None:
-        filters.append(User.email == email)
-    if (phone := normalize_phone(raw)) is not None:
-        filters.append(User.phone == phone)
-    if (username := normalize_username(raw)) is not None:
-        filters.append(User.username == username)
-
-    if not filters:
-        return None
-    return db.query(User).filter(or_(*filters)).first()
+    return db.query(User).filter(User.phone == phone).first()
 
 
 @router.post("/login", response_model=TokenResponse)
 def login(body: LoginRequest, db: Session = Depends(get_db)):
-    user = _find_by_identifier(db, body.identifier)
+    user = _find_by_phone(db, body.identifier)
     if not user or not verify_password(body.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Login yoki parol noto'g'ri")
+        raise HTTPException(status_code=401, detail="Telefon raqam yoki parol noto'g'ri")
     return TokenResponse(token=create_token(user.id))
 
 
@@ -146,25 +92,25 @@ def update_me(
 @router.post("/admin/reset-password")
 def admin_reset_password(
     body: AdminPasswordReset,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-    x_admin_key: str | None = Header(default=None),
 ):
-    """Foydalanuvchi parolini unutsa, admin yangi parol o'rnatib beradi.
+    """Admin (ADMIN_PHONES ro'yxatidagi telefon bilan kirgan foydalanuvchi)
+    boshqa foydalanuvchining parolini tiklaydi.
 
-    Parollar bcrypt hash ko'rinishida saqlanadi — ularni «ko'rish» texnik
+    Parollar bcrypt hash ko'rinishida saqlanadi — ularni "ko'rish" texnik
     jihatdan mumkin emas, tiklashning yagona to'g'ri yo'li shu.
-    `X-Admin-Key` sarlavhasi `ADMIN_KEY` muhit o'zgaruvchisiga teng bo'lishi shart.
     """
-    if not ADMIN_KEY or x_admin_key != ADMIN_KEY:
-        raise HTTPException(status_code=403, detail="Ruxsat yo'q")
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Ruxsat yo'q — faqat admin")
     if len(body.new_password) < 6:
         raise HTTPException(status_code=400, detail="Parol kamida 6 ta belgi bo'lsin")
-    user = _find_by_identifier(db, body.identifier)
+    user = _find_by_phone(db, body.identifier)
     if user is None:
         raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
     user.password_hash = hash_password(body.new_password)
     db.commit()
-    return {"ok": True, "user_id": user.id}
+    return {"ok": True, "user_id": user.id, "phone": user.phone, "full_name": user.full_name}
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)

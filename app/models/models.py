@@ -8,8 +8,8 @@ from ..services.body_metrics import calc_age
 class User(Base):
     """Sog'lom Pedagog foydalanuvchisi (OTM pedagog xodimi).
 
-    Login identifikatorlari — har biri noyob, kamida bittasi to'ldirilgan
-    bo'ladi (odatda `phone`). Ilova sozlamalari (`font_scale`, ...)
+    Foydalanuvchi telefon raqami bilan ro'yxatdan o'tadi (yagona login
+    identifikatori). Ilova sozlamalari (`font_scale`, ...)
     ham shu jadvalda — ular 1:1 va kam o'zgaradi, alohida jadval shart emas.
     """
 
@@ -17,9 +17,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    email = Column(String, unique=True, index=True, nullable=True)
-    phone = Column(String, unique=True, index=True, nullable=True)      # +998XXXXXXXXX
-    username = Column(String, unique=True, index=True, nullable=True)
+    phone = Column(String, unique=True, index=True, nullable=False)     # +998XXXXXXXXX — yagona login identifikatori
 
     full_name = Column(String, nullable=False)
     gender = Column(String, nullable=True)
@@ -49,6 +47,12 @@ class User(Base):
     def age(self) -> int | None:
         """Tug'ilgan sanadan hisoblangan yosh — bazada saqlanmaydi, doim aniq."""
         return calc_age(self.birth_date)
+
+    @property
+    def is_admin(self) -> bool:
+        """Telefon raqami ADMIN_PHONES ro'yxatida bo'lsa — admin (parol tiklay oladi)."""
+        from ..config import ADMIN_PHONES
+        return self.phone in ADMIN_PHONES
 
 
 class Progress(Base):
