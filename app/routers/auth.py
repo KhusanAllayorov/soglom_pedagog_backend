@@ -73,6 +73,8 @@ def _ensure_unique(db: Session, identifiers: dict[str, str | None]) -> None:
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 def register(body: RegisterRequest, db: Session = Depends(get_db)):
+    if len(body.password) < 6:
+        raise HTTPException(status_code=400, detail="Parol kamida 6 ta belgi bo'lsin")
     identifiers = _clean_identifiers(body)
     _ensure_unique(db, identifiers)
 
