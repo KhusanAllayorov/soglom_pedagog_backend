@@ -11,6 +11,10 @@ if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
+# Productionda standart kalit xavfli (tokenlarni soxtalashtirish mumkin) — kamida ogohlantiramiz.
+if DATABASE_URL.startswith("postgresql") and SECRET_KEY == "dev-secret-key":
+    import warnings
+    warnings.warn("SECRET_KEY o'rnatilmagan! Railway Variables'da kuchli kalit bering.")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "43200"))
 
